@@ -77,3 +77,19 @@ Public Sub CopyFileEx(path_src As String, path_dst As String)
         fso.CopyFile path_src, path_dst
     End If
 End Sub
+
+
+
+' 任意のフォルダ内の作成日が古いファイルを削除
+Sub DeleteOldFilesInFolder(folderPath As String, Optional days As Long = 7)
+    Dim folder As Object
+    Set folder = fso.GetFolder(folderPath)
+    
+    Dim file As Object
+    For Each file In folder.Files
+        If DateDiff("d", file.DateCreated, Now) > days Then
+            Debug.Print "Delete Old File: " & file.path
+            file.Delete
+        End If
+    Next file
+End Sub
