@@ -7,7 +7,7 @@
 ' 2. ボタンを作成したいシートのシートモジュールに以下のプロシージャを追加する
 'Private Sub Worksheet_SelectionChange(ByVal Target As Range)
 '    ' テキスト列を2列目の2行目から開始。(ボタンは固定でテキストの右隣に配置される)
-'    CreateCopyButtons Me, 2, 2 
+'    CreateCopyButtons Me, 2, 2
 'End Sub
 ' 3. 管理したいテキストをシートに入力すると、右隣にCopyボタンが作成される
 ' 4. Copyボタンをクリックすると、その行のテキストがクリップボードにコピーされる
@@ -18,34 +18,38 @@ Declare PtrSafe Function Beep Lib "kernel32" (ByVal dwFreq As Long, ByVal dwDura
 
 Sub CreateCopyButtons(ByVal targetSheet As Worksheet, _
                       ByVal textColumnIndex As Integer, _
-                      Optional ByVal startRow As Long = 1)
+                      Optional ByVal startRow As Long = 1, _
+                      Optional ByVal DeleteExistingButtons As Boolean = True)
     Dim lastRow As Long
     Dim btn As Button
-    Dim counter_row As Long
+    Dim row_i As Long
     
     Dim buttonColumnIndex As Integer
     buttonColumnIndex = textColumnIndex + 1  ' テキストの右隣にボタンを配置
     
     lastRow = targetSheet.Cells(targetSheet.Rows.Count, textColumnIndex).End(xlUp).Row
     
-    On Error Resume Next
-    targetSheet.Buttons.Delete
-    On Error GoTo 0
-    
-    For counter_row = startRow To lastRow
-        If targetSheet.Cells(counter_row, textColumnIndex).Value <> "" Then
+    If DeleteExistingButtons Then
+        On Error Resume Next
+        targetSheet.Buttons.Delete
+        On Error GoTo 0
+    End If
+
+    For row_i = startRow To lastRow
+        If targetSheet.Cells(row_i, textColumnIndex).Value <> "" Then
             Set btn = targetSheet.Buttons.Add( _
-                targetSheet.Cells(counter_row, buttonColumnIndex).Left, _
-                targetSheet.Cells(counter_row, buttonColumnIndex).Top, _
-                targetSheet.Cells(counter_row, buttonColumnIndex).Width, _
-                targetSheet.Cells(counter_row, buttonColumnIndex).Height)
+                targetSheet.Cells(row_i, buttonColumnIndex).Left, _
+                targetSheet.Cells(row_i, buttonColumnIndex).Top, _
+                targetSheet.Cells(row_i, buttonColumnIndex).Width, _
+                targetSheet.Cells(row_i, buttonColumnIndex).Height)
             With btn
                 .OnAction = "CopyToClipboard"
                 .Caption = "Copy"
-                .Name = "CopyButton" & counter_row
+                ' HACK: 同一シートに複数のテキスト管理列を作成する際の重複回避措置
+                .Name = "CopyButton" & row_i + textColumnIndex * 100
             End With
         End If
-    Next counter_row
+    Next row_i
 End Sub
 
 Sub CopyToClipboard()
@@ -67,5 +71,5 @@ Sub CopyToClipboard()
         .PutInClipboard
     End With
     
-    Call Beep(441, 100)  ' フィードバック音
+    Call Beep(441, 100)  ' フィードバック音 (A4, 100ms)
 End Sub
