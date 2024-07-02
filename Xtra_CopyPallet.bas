@@ -50,17 +50,17 @@ End Sub
 
 Sub CopyToClipboard()
     Dim btn As Button
-    Dim rowNum As Long
-    Dim colNum As Long
+    Dim trgRow As Long
+    Dim trgCol As Long
     Dim targetSheet As Worksheet
     Dim textCell As Range
     
     Set btn = ActiveSheet.Buttons(Application.Caller)
     Set targetSheet = btn.TopLeftCell.Worksheet
-    rowNum = btn.TopLeftCell.Row
-    colNum = btn.TopLeftCell.Column  ' ボタンの左隣のセル
+    trgRow = btn.TopLeftCell.Row
+    trgCol = btn.TopLeftCell.Column - 1  ' ボタンの左隣のセル
     
-    Set textCell = targetSheet.Cells(rowNum, colNum - 1)
+    Set textCell = targetSheet.Cells(trgRow, trgCol)
     
     With CreateObject("New:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}")  ' MSForms.DataObject
         .SetText textCell.Value
