@@ -16,16 +16,20 @@ Option Explicit
 
 Declare PtrSafe Function Beep Lib "kernel32" (ByVal dwFreq As Long, ByVal dwDuration As Long) As Long
 
-Sub CreateCopyButtons(ByVal targetSheet As Worksheet, _
-                      ByVal textColumnIndex As Integer, _
-                      Optional ByVal startRow As Long = 1, _
-                      Optional ByVal DeleteExistingButtons As Boolean = True)
+Private Sub CreateButtons(ByVal targetSheet As Worksheet, _
+                  ByVal textColumnIndex As Integer, _
+                  ByVal buttonOffset As Integer, _
+                  ByVal buttonCaption As String, _
+                  ByVal buttonAction As String, _
+                  ByVal buttonPrefix As String, _
+                  Optional ByVal startRow As Long = 1, _
+                  Optional ByVal DeleteExistingButtons As Boolean = True)
     Dim lastRow As Long
     Dim btn As Button
     Dim row_i As Long
-    
     Dim buttonColumnIndex As Integer
-    buttonColumnIndex = textColumnIndex + 1  ' テキストの右隣にボタンを配置
+    
+    buttonColumnIndex = textColumnIndex + buttonOffset
     
     lastRow = targetSheet.Cells(targetSheet.Rows.Count, textColumnIndex).End(xlUp).Row
     
@@ -43,15 +47,30 @@ Sub CreateCopyButtons(ByVal targetSheet As Worksheet, _
                 targetSheet.Cells(row_i, buttonColumnIndex).Width, _
                 targetSheet.Cells(row_i, buttonColumnIndex).Height)
             With btn
-                .OnAction = "CopyToClipboard"
-                .Caption = "Copy"
-                ' HACK: 同一シートに複数のテキスト管理列を作成する際の重複回避措置
-                .Name = "CopyButton" & row_i + textColumnIndex * 100
+                .OnAction = buttonAction
+                .Caption = buttonCaption
+                .Name = buttonPrefix & "Button" & row_i + textColumnIndex * 100
             End With
         End If
     Next row_i
 End Sub
 
+' --- Public
+Public Sub CreateCopyButtons(ByVal targetSheet As Worksheet, _
+                      ByVal textColumnIndex As Integer, _
+                      Optional ByVal startRow As Long = 1, _
+                      Optional ByVal DeleteExistingButtons As Boolean = True)
+    Call CreateButtons(targetSheet, textColumnIndex, 1, "Copy", "CopyToClipboard", "CopyToClipboard", startRow, DeleteExistingButtons)
+End Sub
+
+Public Sub CreateAppendButtons(ByVal targetSheet As Worksheet, _
+                        ByVal textColumnIndex As Integer, _
+                        Optional ByVal startRow As Long = 1, _
+                        Optional ByVal DeleteExistingButtons As Boolean = True)
+    Call CreateButtons(targetSheet, textColumnIndex, 2, "Append", "AppendToClipboard", "AppendToClipboard", startRow, DeleteExistingButtons)
+End Sub
+
+' --- Internal
 Sub CopyToClipboard()
     Dim btn As Button
     Dim trgRow As Long
@@ -71,5 +90,33 @@ Sub CopyToClipboard()
         .PutInClipboard
     End With
     
-    Call Beep(441, 100)  ' フィードバック音 (A4, 100ms)
+    Call Beep(441, 100)  ' フィードバック音 (A4, 100ms)  ' 行ごとに半音ずつ変えると楽しいかも
+End Sub
+
+Sub AppendToClipboard()
+    Dim btn As Button
+    Dim trgRow As Long
+    Dim trgCol As Long
+    Dim targetSheet As Worksheet
+    Dim textCell As Range
+    Dim clipboardText As String
+    Dim dataObj As Object
+    
+    Set btn = ActiveSheet.Buttons(Application.Caller)
+    Set targetSheet = btn.TopLeftCell.Worksheet
+    trgRow = btn.TopLeftCell.Row
+    trgCol = btn.TopLeftCell.Column - 2  ' ボタンの2つ左隣のセル
+    
+    Set textCell = targetSheet.Cells(trgRow, trgCol)
+    
+    Set dataObj = CreateObject("New:{1C3B4210-F441-11CE-B9EA-00AA006B1A69}")
+    dataObj.GetFromClipboard
+    clipboardText = dataObj.GetText
+    
+    clipboardText = clipboardText & vbCrLf & vbCrLf & textCell.Value
+    
+    dataObj.SetText clipboardText
+    dataObj.PutInClipboard
+    
+    Call Beep(523, 100)  ' フィードバック音 (C5, 100ms)
 End Sub
